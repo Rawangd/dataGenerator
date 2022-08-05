@@ -34,6 +34,19 @@ function generateBuyers(numberOfBuyers) {
         favoriteProduct.push(faker.commerce.product())
     }
 
+    const StoresArr = () => {
+        return Array(faker.random.numeric(1))
+            .fill(null)
+            .map(() => {
+                return {
+                    _id: faker.datatype.uuid(),
+                    balance: faker.datatype.number(),
+                    sellerName: faker.name.findName(),
+                    ratings: faker.datatype.number({min:0,max:10,precision:0.1}),
+                }
+            })
+    };
+
     var docs = _.times(numberOfBuyers, function (n) {
         return {
 
@@ -47,15 +60,7 @@ function generateBuyers(numberOfBuyers) {
             timeRange: faker.datatype.number(),
             favoriteProducts: favoriteProduct,
             verified: faker.datatype.boolean(),
-            store: _.times(faker.datatype.number(),
-                function (n) {
-                    return {
-                        _id: faker.datatype.uuid(),
-                        balance: faker.datatype.number(),
-                        sellerName: faker.internet.userName(),
-                        ratings: faker.datatype.number(),
-                    }
-                }),
+            store: StoresArr() ,
 
 
         };
