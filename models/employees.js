@@ -1,10 +1,5 @@
 import mongoose from 'mongoose'
-import fs from 'fs'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-import https from 'https'
-import moment from 'moment'
-
 
 const employeeSchema = new mongoose.Schema(
     {

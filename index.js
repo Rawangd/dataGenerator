@@ -290,7 +290,7 @@ const generateStores = async function (noStores) {
                 weight: faker.random.numeric(),
                 price: faker.commerce.price(),
                 sellerId: store._id,
-                badges: ["badge1" , "badge2","badge3"],
+                badges: ["badge1", "badge2", "badge3"],
                 ingredients: faker.commerce.productMaterial(),
                 available: faker.datatype.boolean(),
                 imageUrl: faker.image.food(),
@@ -332,80 +332,83 @@ const generateSchedules = async function (noSched) {
 
 
 const generateCommandsAndTransactions = async function (noCT) {
+    try {
+        let commands = []
+        let transactions = []
+        for (let i = 0; i < noCT; i++) {
 
-    let commands = []
-    let transactions = []
-    for (let i = 0; i < noCT; i++) {
+            let seller = await Store.aggregate([{$sample: {size: 1}}]);
+            let buyer = await Buyer.aggregate([{$sample: {size: 1}}]);
+            let product = await Product.aggregate([{$sample: {size: 5}}]);
+            let stard = faker.date.soon()
+            let endd = faker.date.future()
+            var command = createCommands({
 
-        let seller = await Store.aggregate([{$sample: {size: 1}}]);
-        let buyer = await Buyer.aggregate([{$sample: {size: 1}}]);
-        let product = await Product.aggregate([{$sample: {size: 5}}]);
-        let stard = faker.date.soon()
-        let endd = faker.date.future()
-        var command = createCommands({
+                products: [
+                    {
+                        productId: product[0]._id,
+                        productName: product[0].name,
+                        qty: faker.random.numeric(1),
+                        price: product[0].price
+                    },
+                    {
+                        productId: product[1]._id,
+                        productName: product[1].name,
+                        qty: faker.random.numeric(1),
+                        price: product[1].price
+                    },
+                    {
+                        productId: product[2]._id,
+                        productName: product[2].name,
+                        qty: faker.random.numeric(1),
+                        price: product[2].price
+                    },
+                    {
+                        productId: product[3]._id,
+                        productName: product[3].name,
+                        qty: faker.random.numeric(1),
+                        price: product[3].price
+                    },
+                ],
+                sellerId: seller[0]._id,
+                buyerId: buyer[0]._id,
+                totalPrice: faker.random.numeric(3),
+                startTime: stard,
+                endTime: endd,
+                delivered: faker.datatype.boolean(),
+                deliveredAt: faker.date.between('2022-09-01T00:00:00.000Z', '2023-09-01T00:00:00.000Z'),
+                confirmedAt: faker.date.soon(),
+                rejectedAt: faker.date.between('2022-09-01T00:00:00.000Z', '2023-09-01T00:00:00.000Z'),
+                notes: faker.lorem.sentence(),
+                canceledAt: faker.date.between('2022-09-01T00:00:00.000Z', '2023-09-01T00:00:00.000Z'),
+                status: faker.random.numeric(),
 
-            products: [
-                {
-                    productId: product[0]._id,
-                    productName: product[0].name,
-                    qty: faker.random.numeric(1),
-                    price: product[0].price
-                },
-                {
-                    productId: product[1]._id,
-                    productName: product[1].name,
-                    qty: faker.random.numeric(1),
-                    price: product[1].price
-                },
-                {
-                    productId: product[2]._id,
-                    productName: product[2].name,
-                    qty: faker.random.numeric(1),
-                    price: product[2].price
-                },
-                {
-                    productId: product[3]._id,
-                    productName: product[3].name,
-                    qty: faker.random.numeric(1),
-                    price: product[3].price
-                },
-            ],
-            sellerId: seller[0]._id,
-            buyerId: buyer[0]._id,
-            totalPrice : faker.random.numeric(3),
-            startTime: stard,
-            endTime: endd,
-            delivered: faker.datatype.boolean(),
-            deliveredAt: faker.date.between('2022-09-01T00:00:00.000Z', '2023-09-01T00:00:00.000Z'),
-            confirmedAt: faker.date.soon(),
-            rejectedAt: faker.date.between('2022-09-01T00:00:00.000Z', '2023-09-01T00:00:00.000Z'),
-            notes: faker.lorem.sentence(),
-            canceledAt: faker.date.between('2022-09-01T00:00:00.000Z', '2023-09-01T00:00:00.000Z'),
-            status: faker.random.numeric(),
+            })
 
-        })
-
-        commands.push(command)
-
-
-        var transaction = createTransaction({
+            commands.push(command)
 
 
-            sender: seller[0].storeName,
-            receiver: buyer[0].name,
-            fee: faker.datatype.float({min: 0, max: 1, precision: 0.01}),
-            amount: faker.random.numeric(),
-            type: faker.random.numeric(),
-            description: faker.lorem.sentence(),
-        })
-        transactions.push(transaction)
+            var transaction = createTransaction({
 
 
+                sender: seller[0].storeName,
+                receiver: buyer[0].name,
+                fee: faker.datatype.float({min: 0, max: 1, precision: 0.01}),
+                amount: faker.random.numeric(),
+                type: faker.random.numeric(),
+                description: faker.lorem.sentence(),
+            })
+            transactions.push(transaction)
+
+
+        }
+        await Promise.all(transactions)
+        return Promise.all(commands)
+        //console.log(commands)
+
+    } catch (error) {
+        console.log("error")
     }
-    await Promise.all(commands)
-    //console.log(commands)
-    await Promise.all(transactions)
-
 }
 
 
@@ -432,7 +435,7 @@ async function generateEmployees(noEmployees) {
                 grade: faker.lorem.word(),
                 salary: faker.random.numeric(3),
                 verified: faker.datatype.boolean(),
-                advances: [faker.random.numeric(1),faker.random.numeric(1),faker.random.numeric(1)],
+                advances: [faker.random.numeric(1), faker.random.numeric(1), faker.random.numeric(1)],
                 points: faker.random.numeric(),
                 isActive: faker.datatype.boolean(),
                 storeId: store[0]._id,
@@ -501,36 +504,104 @@ const generateTokens = async function (noTokens) {
 }
 
 
-async function init(noOfRecords) {
-    await generateOwners(noOfRecords)
-    await generateStores(noOfRecords)
-    await generateSchedules(noOfRecords);
-    await generateBuyers(noOfRecords);
-    await generateEmployees(noOfRecords);
+async function init() {
+
     await storeClients();
     await storeEmployees();
     await productSchedules();
-    await generateCommandsAndTransactions(noOfRecords)
-    await generateStaff(noOfRecords)
-    await generateTokens(noOfRecords)
-    console.log("end");
 
+
+}
+
+const question1 = () => {
+    return new Promise((resolve, reject) => {
+        readline.question('owners number  ', async (answer) => {
+            await generateOwners(answer)
+            resolve()
+        })
+    })
+}
+
+const question2 = () => {
+    return new Promise((resolve, reject) => {
+        readline.question('stores number ', async (answer) => {
+            await generateStores(answer)
+            resolve()
+        })
+    })
+}
+
+const question3 = () => {
+    return new Promise((resolve, reject) => {
+        readline.question('buyers number ', async (answer) => {
+            await generateBuyers(answer)
+            resolve()
+        })
+    })
+}
+
+const question4 = () => {
+    return new Promise((resolve, reject) => {
+        readline.question('employees number ', async (answer) => {
+            await generateEmployees(answer)
+            resolve()
+        })
+    })
+}
+
+const question5 = () => {
+    return new Promise((resolve, reject) => {
+        readline.question('schedules number ', async (answer) => {
+            await generateSchedules(answer)
+            resolve()
+        })
+    })
+}
+
+const question6 = () => {
+    return new Promise((resolve, reject) => {
+        readline.question('commands number ', async (answer) => {
+            await generateCommandsAndTransactions(answer)
+            resolve()
+        })
+    })
+}
+
+const question7 = () => {
+    return new Promise((resolve, reject) => {
+        readline.question('staff number ', async (answer) => {
+            await generateStaff(answer)
+            resolve()
+        })
+    })
+}
+
+const question8 = () => {
+    return new Promise((resolve, reject) => {
+        readline.question('tokens number ', async (answer) => {
+            await generateTokens(answer)
+            resolve()
+        })
+    })
 }
 
 async function CreateDB() {
     try {
         db = mongoose.connection;
         console.log('connectiong to database...');
-        await mongoose.connect('mongodb+srv://nodejs:SIzsamYbT4bMdkdt@cluster0.1npnz.mongodb.net/Makhbazti?retryWrites=true&w=majority',{useNewUrlParser: true });
+        await mongoose.connect('mongodb://localhost:27017/newdb', {useNewUrlParser: true});
         console.log('database connected successfully...');
 
-        readline.question('how much data do you want to generate?', noOfRecords => {
-            init(noOfRecords);
-            readline.close();
-        });
-
-        //  await init(noOfRecords);
-
+        await question1()
+        await question2()
+        await question3()
+        await question4()
+        await question5()
+        await question6()
+        await question7()
+        await question8()
+        await init();
+        console.log('end')
     } catch (err) {
         console.log(err);
     }
