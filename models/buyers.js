@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose'
+
 
 
 const buyerSchema = new mongoose.Schema(
@@ -53,9 +54,10 @@ const buyerSchema = new mongoose.Schema(
         },
         stores: {
             type: [
+
                 {
-                    _id: String,
-                    balance: { type: mongoose.Schema.Types.Decimal128, min: 0 },
+                    storeId: String,
+                    balance: {type: mongoose.Schema.Types.Decimal128, min: 0},
                     sellerName: String,
                     ratings: Number,
                 },
@@ -63,20 +65,8 @@ const buyerSchema = new mongoose.Schema(
             default: [],
         },
     },
-    { timestamps: true }
+    {timestamps: true}
 )
 
-
-buyerSchema.pre('save', async function (next) {
-    try {
-        if (this.password.length === 4) {
-            const hashedPassword = await bcrypt.hash(this.password, 10) // hash the current user's password
-            this.password = hashedPassword
-        }
-    } catch (error) {
-        console.error(error)
-    }
-    return next()
-})
 
 export const Buyer = mongoose.model('Buyer', buyerSchema, 'buyers')
