@@ -1,0 +1,222 @@
+var noOfRecords = 10;
+var db;
+
+CreateDB();
+
+
+async function CreateDB() {
+    try {
+
+        db = mongoose.connection;
+        console.log('connectiong to database...');
+        await mongoose.connect('mongodb://localhost:27017/testData');
+        console.log('database connected successfully...');
+        await init(noOfRecords);
+
+    } catch (err) {
+        console.log(err);
+    }
+
+
+}
+
+
+
+async function generateStores(noStores) {
+    let sname = Owner.findOne ;
+    var docs = _.times(noStores, function (n) {
+        return {
+            balance: faker.datatype.number(),
+            sellerName:sname ,
+            ratings: faker.datatype.number({min: 0, max: 10, precision: 0.1}),
+        }
+    })
+
+    return Promise.all([Stores.insertMany(docs), {}]);
+}
+
+
+
+
+
+function generateBuyers(numberOfBuyers) {
+    let pwd = '$2a$12$bVzr8JEVHT0w2gXNtLlHrefXV21BK0tIIOsMWbSx9GPjhrJDoxF4O' ;
+    let favoriteProduct = [] ;
+    for (let i = 0; i < faker.datatype.number(); ++i) {
+        favoriteProduct.push(faker.commerce.product())
+    }
+
+
+    var docs = _.times(numberOfBuyers, function (n) {
+        return {
+
+            name: faker.name.findName(),
+            points: faker.datatype.number(),
+            resetCode: _.times(faker.datatype.number(), faker.random.word),
+            email: faker.internet.email(),
+            phone: faker.phone.number('+216 ## ### ###'),
+            code: faker.datatype.string(),
+            password: faker.internet.password(7, true),
+            timeRange: faker.datatype.number({max:60}),
+            favoriteProducts: favoriteProduct,
+            verified: faker.datatype.boolean(),
+            store: Stores.findById ,
+
+        };
+    });
+
+    return Promise.all([Buyer.insertMany(docs), {}]);
+
+}
+
+
+async function generateOwners(noOwners) {
+    const hash = 'L5R+WUX700nO$|n,V@n~00WCHUoz';
+    let regexp = /^[7|2|5|3|4|9][0-9]{7}$/;
+    var tlf = [];
+    let i = 0;
+    while (i < 100) {
+        let str = faker.random.numeric(8);
+        tlf.push(str.match(regexp));
+        tlf = tlf.filter(data => data != null);
+        i++;
+
+    }
+
+    tlf = tlf.find(data => data.input);
+    var docs = _.times(noOwners, function (n) {
+
+        return {
+            name: faker.name.findName(),
+            cin: faker.random.numeric(8),
+            phone: faker.helpers.arrayElement(tlf),
+            email: faker.internet.email(),
+            feesPercent: faker.datatype.float({min: 0, max: 100, precision: 0.01}),
+            logoUrl: faker.image.imageUrl(),
+            logoHash: hash,//use image-hash
+
+            verified: faker.datatype.boolean(),
+        }
+
+    })
+
+
+    return Promise.all([Owner.insertMany(docs), {}]);
+}
+
+async function init(noOfRecords) {
+
+    await generateOwners(noOfRecords).then((docs) => {
+        //mongoose.connection.close();
+        console.log('Owners successfully inserted');
+    });
+    await generateStores(3).then((docs) => {
+       // mongoose.connection.close();
+
+    });
+
+    await generateBuyers(noOfRecords).then((docs) => {
+        mongoose.connection.close();
+        console.log('Buyers successfully inserted');
+    });
+
+    console.log(`Created Collections with ${noOfRecords}  finished.`);
+
+
+}
+
+
+**********************************************************************************************************************************
+
+const createBuyer = function (buyer) {
+    return Buyer.create(buyer).then(doc => {
+        return doc;
+    });
+};
+
+const createOwner = function (owner) {
+    return Owner.create(owner).then(doc => {
+        return doc;
+    });
+};
+
+const createProduct = function (BuyerId, product) {
+    return Product.create(product).then(doc => {
+        return Buyer.findByIdAndUpdate(
+            BuyerId,
+            {
+                $push: {
+                    favoriteProducts: {
+                        _id: doc._id,
+                        ProductName: doc.ProductName
+                    }
+                }
+            },
+            {new: true, useFindAndModify: false}
+        );
+    });
+};
+
+
+const createStore = function (BuyerId, store) {
+    return Stores.create(store).then(doc => {
+
+        return Buyer.findByIdAndUpdate(
+            BuyerId,
+            {$push: {stores: {
+                _id:doc._id,
+                    sellerName:doc.sellerName}}},
+            {new: true, useFindAndModify: false}
+        );
+    });
+};
+
+
+/*const getBuyerWithPopulate = function (id) {
+    return Buyer.findById(id)
+        .populate("stores", "-_id -__v")
+    //.select("-images._id -__v");
+};*/
+const generateBuyers = async function (noBuyers) {
+    let pwd = '$2a$12$bVzr8JEVHT0w2gXNtLlHrefXV21BK0tIIOsMWbSx9GPjhrJDoxF4O';
+
+
+
+
+    for (let i = 0; i < noBuyers; i++ ){
+        let tlf = new RandExp(/^[7|2|5|3|4|9][0-9]{7}$/).gen();
+
+
+        var Buyer = await createBuyer({
+            name: faker.name.findName(),
+            points: faker.datatype.number(),
+            resetCode: _.times(faker.datatype.number(), faker.random.word),
+            email: faker.internet.email(),
+            phone: tlf,
+            code: faker.datatype.string(),
+            password: pwd,
+            timeRange: faker.datatype.number({max: 60}),
+            verified: faker.datatype.boolean(),
+        });
+
+        for (let i = 0; i < 3; i++) {
+            let doc = await Owner.aggregate([{$sample:{size:1}}]) ;
+            Buyer = await createStore(Buyer._id, {
+                balance: faker.datatype.number(),
+                sellerName:doc[0].name ,
+                ratings: faker.datatype.number({min: 0, max: 10, precision: 0.1}),
+            });
+
+            Buyer = await createProduct(Buyer._id, {
+                ProductName: faker.commerce.product()
+            });
+        }
+       // console.log("\n>> owner:\n", owner);
+        console.log("\n>> buyer:\n", Buyer);
+
+
+        //Buyer = await getBuyerWithPopulate(Buyer._id);
+
+    }
+};
+
