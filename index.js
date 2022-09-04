@@ -29,21 +29,9 @@ function pickRandom(arr) {
     return arr.filter(() => Math.random() > 0.5)
 }
 
-const createProduct = function (StoreId, product) {
+const createProduct = function (product) {
     return Product.create(product).then(doc => {
-
-        return Store.findByIdAndUpdate(
-            StoreId,
-            {
-                $push: {
-                    products: {
-                        // _id:doc._id,
-                        name: doc.name
-                    }
-                }
-            },
-            {new: true, useFindAndModify: false}
-        );
+        return doc;
     });
 };
 
@@ -138,7 +126,7 @@ const storeEmployees = async function () {
     let employee;
 
     for (let j = 0; j < val2; j++) {
-        employee = await Employee.find({"storeId": (stores[j]._id)})
+        employee = await Employee.find({"sellerId": (stores[j]._id)})
         let employees = []
 
         for (let i = 0; i < employee.length; i++) {
@@ -146,6 +134,24 @@ const storeEmployees = async function () {
 
         }
         await Store.findByIdAndUpdate(stores[j]._id, {employees: employees})
+
+    }
+
+}
+const storeProducts = async function () {
+    let stores = await Store.find();
+    let val2 = await Store.countDocuments()
+    let product;
+
+    for (let j = 0; j < val2; j++) {
+        product = await Product.find({"storeId": (stores[j]._id)})
+        let products = []
+
+        for (let i = 0; i < product.length; i++) {
+            products.push(product[i].name)
+            console.log(products)
+        }
+        await Store.findByIdAndUpdate(stores[j]._id, {products: products})
 
     }
 
@@ -282,24 +288,34 @@ const generateStores = async function (noStores) {
             },
         });
 
-        for (let i = 0; i < faker.random.numeric(1); i++) {
-            store = await createProduct(store._id, {
-                name: faker.commerce.product(),
-                sellingByPiece: faker.datatype.boolean(),
-                category: faker.random.numeric(),
-                weight: faker.random.numeric(),
-                price: faker.commerce.price(),
-                sellerId: store._id,
-                badges: ["badge1", "badge2", "badge3"],
-                ingredients: faker.commerce.productMaterial(),
-                available: faker.datatype.boolean(),
-                imageUrl: faker.image.food(),
-                imageHash: hash,
-            })
-        }
 
     }
 
+
+}
+
+const generateProducts = async function (noProduct) {
+
+
+    for (let i = 0; i < noProduct; i++) {
+        let sellerid = await Store.aggregate([{$sample: {size: 1}}]);
+
+        var Product = await createProduct({
+            name: faker.commerce.product(),
+            sellingByPiece: faker.datatype.boolean(),
+            category: faker.random.numeric(),
+            weight: faker.random.numeric(),
+            price: faker.commerce.price(),
+            sellerId: sellerid[0]._id,
+            badges: ["badge1", "badge2", "badge3"],
+            ingredients: faker.commerce.productMaterial(),
+            available: faker.datatype.boolean(),
+            imageUrl: faker.image.food(),
+            imageHash: hash,
+        })
+
+        //console.log("\n>> product :\n", product)
+    }
 
 }
 
@@ -376,11 +392,11 @@ const generateCommandsAndTransactions = async function (noCT) {
                 startTime: stard,
                 endTime: endd,
                 delivered: faker.datatype.boolean(),
-                deliveredAt: faker.date.between('2022-09-01T00:00:00.000Z', '2023-09-01T00:00:00.000Z'),
+                deliveredAt: faker.date.between('2022-09-30T00:00:00.000Z', '2023-09-01T00:00:00.000Z'),
                 confirmedAt: faker.date.soon(),
-                rejectedAt: faker.date.between('2022-09-01T00:00:00.000Z', '2023-09-01T00:00:00.000Z'),
+                rejectedAt: faker.date.between('2022-09-30T00:00:00.000Z', '2023-09-01T00:00:00.000Z'),
                 notes: faker.lorem.sentence(),
-                canceledAt: faker.date.between('2022-09-01T00:00:00.000Z', '2023-09-01T00:00:00.000Z'),
+                canceledAt: faker.date.between('2022-09-30T00:00:00.000Z', '2023-09-01T00:00:00.000Z'),
                 status: faker.random.numeric(),
 
             })
@@ -403,13 +419,14 @@ const generateCommandsAndTransactions = async function (noCT) {
 
         }
         await Promise.all(transactions)
-        return Promise.all(commands)
+        await Promise.all(commands)
         //console.log(commands)
 
-    } catch (error) {
-        console.log("error")
+    } catch (e) {
+        console.log('Error:', e.message)
     }
 }
+
 
 
 async function generateEmployees(noEmployees) {
@@ -509,7 +526,7 @@ async function init() {
     await storeClients();
     await storeEmployees();
     await productSchedules();
-
+    await storeProducts()
 
 }
 
@@ -517,6 +534,15 @@ const question1 = () => {
     return new Promise((resolve, reject) => {
         readline.question('owners number  ', async (answer) => {
             await generateOwners(answer)
+            resolve()
+        })
+    })
+}
+
+const question = () => {
+    return new Promise((resolve, reject) => {
+        readline.question('products number  ', async (answer) => {
+            await generateProducts(answer)
             resolve()
         })
     })
@@ -589,10 +615,10 @@ async function CreateDB() {
     try {
         db = mongoose.connection;
         console.log('connectiong to database...');
-        await mongoose.connect('mongodb://localhost:27017/newdb', {useNewUrlParser: true});
+        await mongoose.connect('mongodb+srv://nodejs:SIzsamYbT4bMdkdt@cluster0.1npnz.mongodb.net/Makhbazti?retryWrites=true&w=majority', {useNewUrlParser: true});
         console.log('database connected successfully...');
-
         await question1()
+        await question()
         await question2()
         await question3()
         await question4()
