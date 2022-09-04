@@ -24,9 +24,20 @@ var randomCoordinates = require('random-coordinates');
 
 var db;
 const hash = 'L5R+WUX700nO$|n,V@n~00WCHUoz';
+var stores = []
+
+var Products = []
 
 function pickRandom(arr) {
     return arr.filter(() => Math.random() > 0.5)
+}
+
+
+function arrayRemove(arr, value) {
+
+    return arr.filter(function (ele) {
+        return ele != value;
+    });
 }
 
 const createProduct = function (product) {
@@ -37,6 +48,12 @@ const createProduct = function (product) {
 
 const createStore = function (store) {
     return Store.create(store).then(doc => {
+        return doc;
+    });
+};
+
+const createOwners = function (owner) {
+    return Owner.create(owner).then(doc => {
         return doc;
     });
 };
@@ -102,56 +119,57 @@ const createempsched = function (EmployeeId, emp) {
 };
 
 const storeClients = async function () {
-    let stores = await Store.find();
+    let stor = await Store.find();
     let val2 = await Store.countDocuments()
     let buyer;
 
     for (let j = 0; j < val2; j++) {
-        buyer = await Buyer.find({"stores.storeId": (stores[j]._id)})
+        buyer = await Buyer.find({"stores.storeId": (stor[j]._id)})
         let buyers = [];
         for (let i = 0; i < buyer.length; i++) {
 
             buyers.push((buyer[i]._id))
 
         }
-        await Store.findByIdAndUpdate(stores[j]._id, {clients: buyers})
+        await Store.findByIdAndUpdate(stor[j]._id, {clients: buyers})
 
     }
 
 }
 
+
 const storeEmployees = async function () {
-    let stores = await Store.find();
-    let val2 = await Store.countDocuments()
+    //let stor = await Store.find();
+    //let val2 = await Store.countDocuments()
     let employee;
 
-    for (let j = 0; j < val2; j++) {
-        employee = await Employee.find({"sellerId": (stores[j]._id)})
+    for (let j = 0; j < stores.length; j++) {
+        employee = await Employee.find({"storeId": (stores[j])})
         let employees = []
 
         for (let i = 0; i < employee.length; i++) {
-            employees.push(employee[i]._id)
+            employees.push(employee[i].name)
 
         }
-        await Store.findByIdAndUpdate(stores[j]._id, {employees: employees})
-
+        await Store.findByIdAndUpdate(stores[j], {employees: employees})
+       // console.log(employees)
     }
 
 }
 const storeProducts = async function () {
-    let stores = await Store.find();
+    let stor = await Store.find();
     let val2 = await Store.countDocuments()
     let product;
 
     for (let j = 0; j < val2; j++) {
-        product = await Product.find({"storeId": (stores[j]._id)})
+        product = await Product.find({"sellerId": (stor[j]._id)})
         let products = []
 
         for (let i = 0; i < product.length; i++) {
             products.push(product[i].name)
-            console.log(products)
+
         }
-        await Store.findByIdAndUpdate(stores[j]._id, {products: products})
+        await Store.findByIdAndUpdate(stor[j]._id, {products: products})
 
     }
 
@@ -178,13 +196,15 @@ const productSchedules = async function () {
 const generateBuyers = async function (noBuyers) {
     let pwd = '$2a$12$bVzr8JEVHT0w2gXNtLlHrefXV21BK0tIIOsMWbSx9GPjhrJDoxF4O';
     let fav = await Product.find();
-
+    let val2 = await Product.countDocuments()
 
     for (let i = 0; i < noBuyers; i++) {
         let tlf = new RandExp(/^[7|2|5|3|4|9][0-9]{7}$/).gen();
-        let store = await Store.aggregate([{$sample: {size: 4}}]);
+        let store = stores[Math.floor(Math.random() * stores.length)];
+        let store1 = stores[Math.floor(Math.random() * stores.length)];
+        let store2 = stores[Math.floor(Math.random() * stores.length)];
         let favp = []
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < val2; i++) {
             favp.push(fav[i].name)
         }
 
@@ -205,22 +225,22 @@ const generateBuyers = async function (noBuyers) {
             stores: [
 
                 {
-                    storeId: store[0]._id,
+                    storeId: store._id,
                     balance: faker.random.numeric(),
-                    sellerName: store[0].sellerName,
-                    ratings: store[0].totalPoints,
+                    sellerName: store.sellerName,
+                    ratings: store.totalPoints,
                 },
                 {
-                    storeId: store[1]._id,
+                    storeId: store1._id,
                     balance: faker.random.numeric(),
-                    sellerName: store[1].sellerName,
-                    ratings: store[0].totalPoints,
+                    sellerName: store1.sellerName,
+                    ratings: store1.totalPoints,
                 },
                 {
-                    storeId: store[2]._id,
+                    storeId: store2._id,
                     balance: faker.random.numeric(),
-                    sellerName: store[2].sellerName,
-                    ratings: store[0].totalPoints,
+                    sellerName: store2.sellerName,
+                    ratings: store2.totalPoints,
                 }
 
             ],
@@ -229,16 +249,17 @@ const generateBuyers = async function (noBuyers) {
 
 
     }
+
 };
 
 
 async function generateOwners(noOwners) {
-
-    var docs = _.times(noOwners, function (n) {
+    let owners = []
+    for (let i = 0; i < noOwners; i++) {
         let tlf = new RandExp(/^[7|2|5|3|4|9][0-9]{7}$/).gen();
         let Cin = new RandExp(/^[1|0][0-9]{7}$/).gen();
 
-        return {
+        var owner = createOwners({
 
             name: faker.name.findName(),
             cin: Cin,
@@ -247,19 +268,17 @@ async function generateOwners(noOwners) {
             feesPercent: faker.datatype.float({min: 0, max: 100, precision: 0.01}),
             logoUrl: faker.image.imageUrl(),
             logoHash: hash,//use image-hash
-
             verified: faker.datatype.boolean(),
-        }
 
-
-    })
-
-    return Promise.all([Owner.insertMany(docs), {}]);
+        })
+        owners.push(owner)
+    }
+    return owners
 }
 
 
 const generateStores = async function (noStores) {
-
+    let stores = []
     for (let i = 0; i < noStores; i++) {
 
         let tlf = new RandExp(/^[7|2|5|3|4|9][0-9]{7}$/).gen();
@@ -288,62 +307,71 @@ const generateStores = async function (noStores) {
             },
         });
 
-
+        stores.push(store._id)
     }
-
+    return stores
 
 }
 
 const generateProducts = async function (noProduct) {
+    try {
+        let products = []
+        for (let i = 0; i < noProduct; i++) {
+            let sellerid = stores[Math.floor(Math.random() * stores.length)];
 
 
-    for (let i = 0; i < noProduct; i++) {
-        let sellerid = await Store.aggregate([{$sample: {size: 1}}]);
-
-        var Product = await createProduct({
-            name: faker.commerce.product(),
-            sellingByPiece: faker.datatype.boolean(),
-            category: faker.random.numeric(),
-            weight: faker.random.numeric(),
-            price: faker.commerce.price(),
-            sellerId: sellerid[0]._id,
-            badges: ["badge1", "badge2", "badge3"],
-            ingredients: faker.commerce.productMaterial(),
-            available: faker.datatype.boolean(),
-            imageUrl: faker.image.food(),
-            imageHash: hash,
-        })
-
-        //console.log("\n>> product :\n", product)
+            var Product = await createProduct({
+                name: faker.commerce.product(),
+                sellingByPiece: faker.datatype.boolean(),
+                category: faker.random.numeric(),
+                weight: faker.random.numeric(),
+                price: faker.commerce.price(),
+                sellerId: sellerid,
+                badges: ["badge1", "badge2", "badge3"],
+                ingredients: faker.commerce.productMaterial(),
+                available: faker.datatype.boolean(),
+                imageUrl: faker.image.food(),
+                imageHash: hash,
+            })
+            products.push(Product)
+            //console.log("\n>> product :\n", product)
+        }
+        return products
+    } catch (error) {
+        console.log("error", error.message)
     }
 
 }
 
 
 const generateSchedules = async function (noSched) {
-    let date = new Date();
 
-    for (let i = 0; i < noSched; i++) {
-        let productid = await Product.aggregate([{$sample: {size: 5}}]);
-        let sellerid = await Store.aggregate([{$sample: {size: 5}}]);
-        let date1 = faker.date.future();
-        let difference = date1.getTime() - date.getTime();
-        let TotalDays = Math.ceil(difference / (1000 * 3600 * 24));
+    try {
+        let date = new Date();
 
-        var Schedule = await createSchedule({
-            qty: faker.random.numeric(),
-            productId: productid[0]._id,
-            sellerId: sellerid[0]._id,
-            dateTime: date1,
-            left: TotalDays,
-            suspended: faker.datatype.boolean(),
-            ready: faker.datatype.boolean(),
+        for (let i = 0; i < noSched; i++) {
+            let productid = await Products[Math.floor(Math.random() * Products.length)];
+            let sellerid = await Store.aggregate([{$sample: {size: 5}}]);
+            let date1 = faker.date.future();
+            let difference = date1.getTime() - date.getTime();
+            let TotalDays = Math.ceil(difference / (1000 * 3600 * 24));
 
-        });
+            var Schedule = await createSchedule({
+                qty: faker.random.numeric(),
+                productId: productid._id,
+                sellerId: sellerid[0]._id,
+                dateTime: date1,
+                left: TotalDays,
+                suspended: faker.datatype.boolean(),
+                ready: faker.datatype.boolean(),
 
-        //console.log("\n>> product :\n", product)
+            });
+
+            //console.log("\n>> product :\n", product)
+        }
+    }catch (e) {
+        console.log(e.message)
     }
-
 }
 
 
@@ -428,14 +456,14 @@ const generateCommandsAndTransactions = async function (noCT) {
 }
 
 
-
 async function generateEmployees(noEmployees) {
     try {
         var employees = [];
+        let Stores = stores
         for (let i = 0; i < noEmployees; i++) {
 
             let tlf = new RandExp(/^[7|2|5|3|4|9][0-9]{7}$/).gen();
-            let store = await Store.aggregate([{$sample: {size: 1}}]);
+            let store = Stores[Math.floor(Math.random() * stores.length)];
 
             var employee = createEmployee({
 
@@ -455,7 +483,7 @@ async function generateEmployees(noEmployees) {
                 advances: [faker.random.numeric(1), faker.random.numeric(1), faker.random.numeric(1)],
                 points: faker.random.numeric(),
                 isActive: faker.datatype.boolean(),
-                storeId: store[0]._id,
+                storeId: store,
 
 
             })
@@ -473,10 +501,12 @@ async function generateEmployees(noEmployees) {
             })
             employees.push(employee)
 
+            Stores = arrayRemove(Stores, store)
         }
 
+
     } catch (error) {
-        console.log("error")
+        console.log("error", error.message)
     }
 
     return Promise.all(employees);
@@ -542,7 +572,7 @@ const question1 = () => {
 const question = () => {
     return new Promise((resolve, reject) => {
         readline.question('products number  ', async (answer) => {
-            await generateProducts(answer)
+            Products = await generateProducts(answer)
             resolve()
         })
     })
@@ -551,7 +581,7 @@ const question = () => {
 const question2 = () => {
     return new Promise((resolve, reject) => {
         readline.question('stores number ', async (answer) => {
-            await generateStores(answer)
+            stores = await generateStores(answer);
             resolve()
         })
     })
@@ -618,8 +648,10 @@ async function CreateDB() {
         await mongoose.connect('mongodb+srv://nodejs:SIzsamYbT4bMdkdt@cluster0.1npnz.mongodb.net/Makhbazti?retryWrites=true&w=majority', {useNewUrlParser: true});
         console.log('database connected successfully...');
         await question1()
-        await question()
+
+
         await question2()
+        await question()
         await question3()
         await question4()
         await question5()
